@@ -20,13 +20,26 @@ const categories = [
   "music",
 ];
 
-// const categories = [
-//   { title: "Games", tag: "55" },
-//   { title: "Anime Girl", tag: "5" },
-//   { title: "Fantasy", tag: "853" },
-//   { title: "Cyberpunk", tag: "376" },
-// ];
+const filters = {
+  order: ["popular", "latest"],
+  orientation: ["horizontal", "vertical"],
+  type: ["photo", "illustration", "vector"],
+  colors: [
+    "red",
+    "orange",
+    "yellow",
+    "green",
+    "turquoise",
+    "blue",
+    "pink",
+    "gray",
+    "black",
+    "brown",
+    "white",
+  ],
+};
 
 export const data = {
   categories,
+  filters,
 };
