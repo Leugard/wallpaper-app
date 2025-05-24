@@ -18,23 +18,27 @@ import { apiCall } from "../../api";
 import ImageGrid from "../../components/ImageGrid";
 import { debounce, filter } from "lodash";
 import FiltersModal from "../../components/FiltersModal";
+import { useRouter } from "expo-router";
 
 const HomeScreen = () => {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState(null);
   const [images, setImages] = useState([]);
   const [filters, setFilters] = useState(null);
+  const [isEndReached, setisEndReached] = useState(false);
 
   const { top } = useSafeAreaInsets();
   const paddingTop = top > 0 ? top + 10 : 30;
   const searchInputRef = useRef(null);
   const modalRef = useRef(null);
+  const scrollRef = useRef(null);
+  const router = useRouter();
 
   useEffect(() => {
     fetchImages();
   }, []);
 
-  const fetchImages = async (params = { page: 1 }, append = false) => {
+  const fetchImages = async (params = { page: 1 }, append = true) => {
     console.log("params: ", params, append);
     let res = await apiCall(params);
 
@@ -130,13 +134,43 @@ const HomeScreen = () => {
     searchInputRef?.current?.clear();
   };
 
+  const handleScroll = (event) => {
+    const contentHeight = event.nativeEvent.contentSize.height;
+    const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
+    const scrollOffset = event.nativeEvent.contentOffset.y;
+    const bottomPosition = contentHeight - scrollViewHeight;
+
+    if (scrollOffset >= bottomPosition - 1) {
+      if (!isEndReached) {
+        setisEndReached(true);
+        ++page;
+        let params = {
+          page,
+          ...filters,
+        };
+        if (activeCategory) params.category = activeCategory;
+        if (search) params.q = search;
+        fetchImages(params);
+      }
+    } else if (isEndReached) {
+      setisEndReached(false);
+    }
+  };
+
+  const handleScrollUp = () => {
+    scrollRef?.current?.scrollTo({
+      y: 0,
+      animated: true,
+    });
+  };
+
   const handleTextDebounce = useCallback(debounce(handleSearch, 400), []);
 
   return (
     <View style={[styles.container, { paddingTop }]}>
       <StatusBar translucent backgroundColor="transparent" />
       <View style={styles.header}>
-        <Pressable>
+        <Pressable onPress={handleScrollUp}>
           <Text style={styles.title}>Papr</Text>
         </Pressable>
         <Pressable onPress={openFiltersModal}>
@@ -148,7 +182,12 @@ const HomeScreen = () => {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={{ gap: 15 }}>
+      <ScrollView
+        onScroll={handleScroll}
+        scrollEventThrottle={5}
+        ref={scrollRef}
+        contentContainerStyle={{ gap: 15 }}
+      >
         <View style={styles.searchBar}>
           <View style={styles.searchIcon}>
             <Feather
@@ -223,7 +262,9 @@ const HomeScreen = () => {
           </View>
         )}
 
-        <View>{images.length > 0 && <ImageGrid images={images} />}</View>
+        <View>
+          {images.length > 0 && <ImageGrid images={images} router={router} />}
+        </View>
 
         <View
           style={{ marginBottom: 70, marginTop: images.length > 0 ? 10 : 70 }}
